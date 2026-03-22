@@ -1,0 +1,51 @@
+# Fichiers sensibles et temporaires
+*.backup
+*.log
+*.pyc
+__pycache__/
+*.swp
+*.swo
+.DS_Store
+
+# Albert - Variables d'environnement (NE JAMAIS COMMITER)
+.env
+.env.production
+.env.local
+!.env.example
+
+# Dossiers de build et installation
+dist/
+build/
+*.egg-info/
+
+# Fichiers générés par le système
+albert-agentic/output/*.pdf
+albert-agentic/logs/*
+albert-agentic/tools/__pycache__/
+
+# Fichiers de cache
+.cache/
+*.cache
+
+# Fichiers système
+Thumbs.db
+
+# Fichiers OpenClaw
+.openclaw/
+
+# Fichiers de mémoire quotidienne (contiennent des infos sensibles)
+memory/*.md
+!memory/README.md
+
+# Fichiers de backup
+*.backup
+backup/
+
+# Projets externes et sous-dépôts
+agent-browser/
+nanobot/
+
+# Virtual environments and caches
+venv/
+.venv_test/
+.pytest_cache/

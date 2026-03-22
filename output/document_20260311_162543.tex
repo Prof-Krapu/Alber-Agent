@@ -1,0 +1,42 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{amsmath}
+\usepackage{circuitikz}
+\usepackage{pgfplots}
+\usepackage{siunitx}
+
+\begin{document}
+
+\section*{Circuit RC}
+
+\subsection*{Schéma}
+\begin{center}
+\begin{tikzpicture}[american]
+    \draw (0,0) node[ground] {} -- ++(0,4);
+    \draw (0,0) -- ++(0,4) to[R] ++(5,0) to[C] ++(0,-4) -- (0,0);
+    \draw (0,4) to[V, l=\SI{10}{\volt}] (0,0);
+    \node at (0,4) [above] {$R$};
+    \node at (0+5,4) [above] {$C$};
+    \node at (0+2.5,4) [above] {$\times$};
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Graphique}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    xlabel={$t$ (\si{\milli\second})},
+    ylabel={$V_C$ (\si{\volt})},
+    xmin=0, xmax=5,
+    ymin=0, ymax=10,
+    samples=200,
+    grid=both
+]
+\addplot[blue] {10*(1-exp(-x/500))};
+\addlegendentry{$V_C(t) = V_0(1-e^{-t/\tau})$};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\end{document}

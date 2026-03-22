@@ -1,0 +1,61 @@
+# Albert IA Agentic - Production
+version: '3.8'
+
+services:
+  albert:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: albert-agentic
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      - ALBERT_API_KEY=${ALBERT_API_KEY}
+      - BOT_ACCESS_TOKEN=${BOT_ACCESS_TOKEN:-change-me-in-production}
+      - HOST=0.0.0.0
+      - PORT=8090
+      - DEBUG=false
+      - PYTHON_EXEC_TIMEOUT=30
+      - PYTHON_MEMORY_LIMIT=256
+      - RATE_LIMIT_REQUESTS=30
+      - MAX_CHAT_HISTORY=100
+    volumes:
+      - albert_workspace:/app/workspace
+      - albert_output:/app/workspace/output
+      - albert_tools:/app/tools
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Optionnel: Redis pour la persistance de session
+  redis:
+    image: redis:7-alpine
+    container_name: albert-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  albert_workspace:
+  albert_output:
+  albert_tools:
+  redis_data:
+
+networks:
+  default:
+    name: albert-network

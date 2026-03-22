@@ -1,0 +1,124 @@
+---
+name: google-drive-copy
+description: Copy files and directories to Google Drive using rclone. Use when the user needs to upload, sync, or manage files on Google Drive from the command line. Includes setup verification, basic operations (copy, sync, list), and advanced features like incremental backups and selective sync.
+---
+
+# Google Drive Copy
+
+## Overview
+
+This skill enables automated file transfer between local storage and Google Drive using rclone. It provides command-line workflows for copying, syncing, listing, and managing remote files with support for incremental updates, conflict resolution, and bandwidth control.
+
+## Prerequisites
+
+1. **rclone installed** (`rclone --version`)
+2. **Google Drive remote configured** (`rclone listremotes` shows `gdrive:` or similar)
+3. **Authentication** (already completed during rclone setup)
+
+Verify setup:
+```bash
+rclone --version
+rclone listremotes
+rclone lsd gdrive:
+```
+
+## Basic Operations
+
+### Copy a file to Google Drive
+```bash
+rclone copy /path/to/local/file gdrive:remote/path/
+```
+
+### Copy a directory recursively
+```bash
+rclone copy /path/to/local/dir gdrive:remote/path/ -P
+```
+- `-P` shows progress
+- Use `--dry-run` to test first
+
+### Sync directories (mirror local → remote)
+```bash
+rclone sync /local/dir gdrive:remote/dir -P --dry-run  # test
+rclone sync /local/dir gdrive:remote/dir -P            # execute
+```
+**Warning**: `sync` deletes files on remote that don't exist locally.
+
+### List remote contents
+```bash
+rclone ls gdrive:remote/path          # files with sizes
+rclone lsd gdrive:remote/path         # directories only
+rclone lsf gdrive:remote/path         # simple file list
+rclone tree gdrive:remote/path        # tree view
+```
+
+### Create remote directory
+```bash
+rclone mkdir gdrive:remote/new-folder
+```
+
+## Advanced Features
+
+### Incremental backup with timestamp
+```bash
+# Copy only newer files
+rclone copy /source gdrive:backup/ --max-age 24h -P
+
+# Copy with checksum verification
+rclone copy /source gdrive:backup/ --checksum -P
+```
+
+### Bandwidth limiting
+```bash
+rclone copy /source gdrive:dest/ --bwlimit 1M   # 1 MB/s
+```
+
+### Exclude patterns
+```bash
+rclone copy /source gdrive:dest/ --exclude "*.tmp" --exclude "temp/"
+```
+
+### Mount Google Drive as local filesystem (optional)
+```bash
+rclone mount gdrive: /mnt/gdrive/ --daemon
+```
+
+## Scripts
+
+The `scripts/` directory contains reusable automation scripts:
+
+- `backup-to-gdrive.sh` – Incremental backup with logging
+- `sync-project.sh` – Project folder sync with exclusions
+- `list-remote-large.sh` – Find large files on remote
+
+Execute scripts directly or adapt them to your workflow.
+
+## Common Issues
+
+1. **Permission denied**: Ensure rclone has read access to local files.
+2. **Quota exceeded**: Google Drive storage limit reached.
+3. **Network errors**: Check internet connection and retry with `--retries 3`.
+4. **Authentication expired**: Re-run `rclone config reconnect gdrive:`.
+
+## Quick Reference
+
+| Task | Command |
+|------|---------|
+| Test connection | `rclone lsd gdrive:` |
+| Copy file | `rclone copy /local/file gdrive:path/` |
+| Sync directory | `rclone sync /local gdrive:path/ -P` |
+| List remote | `rclone ls gdrive:path/` |
+| Create folder | `rclone mkdir gdrive:newfolder` |
+| Check differences | `rclone check /local gdrive:path/` |
+
+## Resources
+
+### scripts/
+- `backup-to-gdrive.sh` – Automated incremental backup
+- `sync-project.sh` – Project synchronization with exclusions
+- `list-remote-large.sh` – Identify large remote files
+
+### references/
+- `rclone-cheatsheet.md` – Complete rclone command reference
+- `gdrive-setup.md` – Google Drive remote configuration guide
+
+Use these resources for complex workflows or troubleshooting.

@@ -1,0 +1,42 @@
+\documentclass[12pt]{article}
+\usepackage{circuitikz}
+\usepackage{pgfplots}
+\usepackage{amsmath}
+\usepackage{siunitx}
+
+\begin{document}
+
+\section*{Circuit RC}
+
+\subsection*{Schéma}
+\begin{center}
+\begin{tikzpicture}[american]
+    % Composants
+    \draw (0,0) node[ground] {} to[V=\SI{10}{\volt}] ++(0,3)
+          to[R=\SI{1k}{\ohm}] ++(3,0)
+          to[C=\SI{1\mu}{\farad}] ++(0,-3) -- (0,0);
+
+    % Étiquettes
+    \node at (0+1.5,3) [above] {$R$};
+    \node at (0+3,3) [above] {$C$};
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Graphique Théorique}
+La tension suit la loi :
+\[ V_C(t) = V_S(1-e^{-t/RC}) \]
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    xlabel={Temps ($\si{\second}$)},
+    ymin=0, ymax=10,
+    samples=100
+]
+\pgfmathsetmacro{\RC}{1000*1e-6}
+\addplot[blue, domain=0:0.005] {10*(1-exp(-x/\RC))};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\end{document}

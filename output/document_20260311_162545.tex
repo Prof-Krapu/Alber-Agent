@@ -1,0 +1,42 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{amsmath}
+\usepackage[siunitx]{circuitikz}
+\usepackage{pgfplots}
+
+\begin{document}
+
+\section*{Circuit RC}
+\subsection*{Schéma du circuit}
+\begin{center}
+\ctikzset{label distance=1mm, quiescent open=200}
+\begin{tikzpicture}[american]
+    \draw (0,0) node[ground]{} -- ++(0,4) to[V, l=\SI{10}{\volt}] (0,0)
+        to[R, l=\SI{1k}{\ohm}] ++(0,4)
+        to[C, l=\SI{1\mu}{\farad}] ++(4,0) -- (0,4);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Courbe de charge}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    xlabel={$t$ (\si{\milli\second})},
+    ylabel={$V_C(t)$ (\si{\volt})},
+    xmin=0, xmax=0.005,
+    ymin=0, ymax=10,
+    samples=200,
+    grid=both
+]
+\pgfmathsetmacro{\RC}{1000*1e-6}
+\addplot[blue] {10*(1-exp(-x/\RC))};
+\addlegendentry{$V_C(t) = V_0(1-e^{-t/RC})$};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Équation théorique}
+\[ V_C(t) = V_0 \left(1 - e^{-\frac{t}{RC}}\right) \]
+
+\end{document}

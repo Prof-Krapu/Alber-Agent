@@ -1,0 +1,47 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{amsmath}
+\usepackage{pgfplots}
+\usepackage{circuitikz}
+
+\begin{document}
+
+\section*{Circuit RC et Charge du Condensateur}
+
+\subsection*{Schéma du Circuit RC}
+\begin{center}
+\begin{tikzpicture}
+    % Schéma simplifié du circuit RC
+    \draw (0,0) node[ground] {} -- (0,2) to[V, l=$\mathcal{V}_0$] (0,2) -- (3,2) to[R, l=$R$] (3,0) -- (0,0);
+    \draw (3,2) to[C, l=$C$] (3,0);
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Graphique de la Charge}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    xlabel={Temps $t$ (s)},
+    ylabel={Tension $V_C(t)$ (V)},
+    xmin=0, xmax=0.01,
+    ymin=0, ymax=10,
+    samples=100,
+    grid=both,
+    width=10cm,
+    height=6cm
+]
+% Courbe de charge : V(t) = V0 * (1 - exp(-t/RC))
+\addplot[blue, thick] {10*(1 - exp(-x/0.005))};
+\addlegendentry{$V_C(t) = V_0(1 - e^{-t/RC})$};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Équation Théorique}
+La tension aux bornes du condensateur suit la loi suivante :
+$$
+V_C(t) = V_0 \left(1 - e^{-\frac{t}{RC}}\right)
+$$
+
+\end{document}

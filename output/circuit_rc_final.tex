@@ -1,0 +1,51 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{amsmath}
+\usepackage{circuitikz}
+\usepackage{pgfplots}
+\usepackage{siunitx}
+
+\begin{document}
+
+\section*{Circuit RC Complet}
+
+\subsection*{Schéma du Circuit}
+\begin{tikzpicture}[american, font=\sffamily]
+    \draw (0,0) to[V, l=$\mathcal{V}_S$] ++(0,4);
+    \draw (0,0) to[R, l=$R$] (0,4);
+    \draw (0,4) to[C={i>\pgfkeysvalueof{/pgf/minimum width}}, l_=$C$] ++(5,0);
+    \draw (5,4) -- (5,0) -- (0,0);
+\end{tikzpicture}
+
+\subsection*{Courbe de Charge}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    xlabel={Temps $t$ (\si{\second})},
+    ylabel={$V_C(t)$ (\si{\volt})},
+    xmin=0, xmax=0.01,
+    ymin=0, ymax=15,
+    samples=200,
+    grid,
+    width=10cm,
+    height=6cm
+]
+\addplot[blue, domain=0:0.01] {15*(1-exp(-x/0.005))};
+\addlegendentry{$\mathcal{V}_S(1-e^{-t/RC})$};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\subsection*{Équations}
+La tension aux bornes du condensateur :
+\[
+V_C(t) = \mathcal{V}_S \left(1 - e^{-t/RC}\right)
+\]
+
+L'énergie emmagasinée :
+\[
+E(t) = \frac{1}{2}C(V_C(t))^2 = \frac{\mathcal{V}_S^2 C}{2}\left(1-e^{-t/RC}\right)^2
+\]
+
+\end{document}
