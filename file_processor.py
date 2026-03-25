@@ -185,37 +185,42 @@ def extract_text_from_xlsx(file_content: bytes) -> Tuple[str, List[str]]:
         return f"[Erreur d'extraction XLSX: {str(e)}]", []
 
 
-def convert_pdf_to_images(file_content: bytes) -> List[str]:
-    """Convertit un PDF en liste d'images base64 (une par page)."""
+def convert_pdf_to_images_and_text(file_content: bytes) -> Tuple[List[str], str]:
+    """Convertit un PDF en images (une par page) et extrait le texte."""
     try:
         import fitz  # PyMuPDF
 
         pdf = fitz.open(stream=file_content, filetype="pdf")
         images = []
+        full_text = []
 
         for page_num in range(len(pdf)):
             page = pdf[page_num]
-            # Render page to image (150 DPI for good quality)
-            mat = fitz.Matrix(150 / 72, 150 / 72)
-            pix = page.get_pixmap(matrix=mat)
+            
+            # Extraction du texte
+            text = page.get_text().strip()
+            if text:
+                full_text.append(f"--- PAGE {page_num + 1} ---\n{text}")
 
-            # Convertir en JPEG
+            # Rendu en image (200 DPI pour une meilleure qualité OCR)
+            mat = fitz.Matrix(200 / 72, 200 / 72)
+            pix = page.get_pixmap(matrix=mat)
             img_data = pix.tobytes("jpeg")
 
-            # Resize si nécessaire
-            img_data = resize_image(img_data, max_dimension=2048)
+            # Rezise si dimension vraiment excessive (> 4096)
+            img_data = resize_image(img_data, max_dimension=4096)
 
             # Encoder en base64
             b64 = base64.b64encode(img_data).decode("utf-8")
             images.append(b64)
 
         pdf.close()
-        return images
+        return images, "\n\n".join(full_text)
 
     except ImportError:
-        return []
-    except Exception as e:
-        return []
+        return [], ""
+    except Exception:
+        return [], ""
 
 
 def process_file(
@@ -247,9 +252,10 @@ def process_file(
         attachment.content = base64.b64encode(processed).decode("utf-8")
 
     elif file_type == FileType.PDF:
-        # Convertir chaque page en image
-        images = convert_pdf_to_images(file_content)
+        # Convertir chaque page en image et extraire le texte
+        images, text = convert_pdf_to_images_and_text(file_content)
         attachment.pages = images
+        attachment.text_content = text
         if images:
             attachment.content = images[0]  # Première page en preview
 
@@ -308,16 +314,23 @@ def attachment_to_content_blocks(attachment: Attachment) -> List[Dict[str, Any]]
     """
     blocks = []
 
-    # Texte extrait d'abord (pour DOCX, XLSX, etc.)
+    # Texte extrait d'abord (pour PDF, DOCX, XLSX, etc.)
     if attachment.text_content and attachment.file_type in {
+        FileType.PDF,
         FileType.DOCX,
         FileType.XLSX,
         FileType.TEXT,
     }:
+        content = f"Fichier: {attachment.name}\n"
+        if attachment.file_type == FileType.PDF:
+             content += "Contenu texte extrait du PDF :\n"
+        
+        content += f"\n{attachment.text_content[:50000]}"
+        
         blocks.append(
             {
                 "type": "text",
-                "text": f"Fichier: {attachment.name}\n\n{attachment.text_content[:50000]}",
+                "text": content,
             }
         )
 

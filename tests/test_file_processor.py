@@ -40,3 +40,26 @@ def test_process_unsupported_file():
     content = b"\x00\x01\x02\x03"
     att = process_file(content, "raw.bin", "application/octet-stream")
     assert att is None
+
+def test_process_pdf_generates_images_and_text():
+    # Créer un PDF minimal avec fitz
+    from file_processor import process_file, FileType, attachment_to_content_blocks
+    import fitz
+    import os
+    
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((50, 50), "Test PDF Content")
+    pdf_bytes = doc.tobytes()
+    doc.close()
+
+    result = process_file(pdf_bytes, "test.pdf")
+    assert result is not None
+    assert result.file_type == FileType.PDF
+    assert len(result.pages) == 1
+    assert "Test PDF Content" in result.text_content
+    
+    # Vérifier que le format envoyé à Mistral contient les deux
+    blocks = attachment_to_content_blocks(result)
+    assert any(b["type"] == "text" for b in blocks)
+    assert any(b["type"] == "image_url" for b in blocks)
