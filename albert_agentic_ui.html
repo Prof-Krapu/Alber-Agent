@@ -836,7 +836,7 @@
     <script>
         // Configuration
         // Token local storage is discouraged in production. Use session token or short-lived auth.
-        const BOT_TOKEN = localStorage.getItem('albert_token') || '';
+        let BOT_TOKEN = localStorage.getItem('albert_token') || '';
         let currentModel = 'mistralai/Mistral-Small-3.2-24B-Instruct-2506';
         let currentModelName = 'Mistral Small 24B';
         let isProcessing = false;
@@ -868,6 +868,14 @@
             
             setupMarked();
             setupEventListeners();
+            
+            // Si pas de token, afficher la modal de paramètres
+            if (!BOT_TOKEN) {
+                showSettings();
+                addMessage('⚙️ Veuillez entrer votre **token d\'accès** dans les paramètres pour commencer.', 'system');
+                return;
+            }
+            
             await loadModels();
             await loadTools();
             await checkStatus();
@@ -1113,6 +1121,13 @@
                 const response = await fetch('/api/models', {
                     headers: { 'Authorization': `Bearer ${BOT_TOKEN}` }
                 });
+                
+                if (response.status === 401) {
+                    showSettings();
+                    addMessage('🔑 Token invalide ou manquant. Veuillez entrer votre token dans les paramètres.', 'system');
+                    return;
+                }
+                
                 const data = await response.json();
                 
                 if (data.success) {
@@ -1159,6 +1174,9 @@
                 const response = await fetch('/api/tools', {
                     headers: { 'Authorization': `Bearer ${BOT_TOKEN}` }
                 });
+                
+                if (response.status === 401) return; // Already handled by loadModels
+                
                 const data = await response.json();
                 
                 if (data.success) {
@@ -1254,10 +1272,10 @@
                 if (data.success) {
                     addMessage(data.reply, 'assistant');
                 } else {
-                    addMessage(`❌ Erreur: ${data.error}`, 'system');
+                    addMessage(`❌ Erreur: ${data.error || 'Réponse invalide du serveur'}`, 'system');
                 }
             } catch (error) {
-                addMessage('❌ Erreur de connexion au serveur', 'system');
+                addMessage(`❌ Erreur de connexion au serveur: ${error.message || 'inconnue'}`, 'system');
             } finally {
                 isProcessing = false;
                 sendButton.disabled = false;
@@ -1389,7 +1407,15 @@
             const token = document.getElementById('apiToken').value.trim();
             if (token) {
                 localStorage.setItem('albert_token', token);
-                location.reload();
+                BOT_TOKEN = token;
+                hideSettings();
+                // Recharger les données avec le nouveau token
+                loadModels();
+                loadTools();
+                checkStatus();
+                setupDragDrop();
+                setupFileUpload();
+                addMessage('✅ Token enregistré. Connexion en cours...', 'system');
             }
         }
 
