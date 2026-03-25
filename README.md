@@ -17,40 +17,61 @@ Assistant IA agentique nouvelle génération avec sécurité renforcée et archi
 ```
 albert-agentic/
 ├── albert_api.py          # Backend FastAPI (PRODUCTION)
-├── albert_api_flask.py    # Backend Flask (LEGACY)
 ├── albert_agentic_ui.html # Interface moderne
 ├── config.py              # Configuration centralisée
 ├── validators.py          # Validation des entrées
-├── rate_limiter.py        # Rate limiting
+├── rate_limiter.py        # Rate limiting (Token Bucket)
 ├── secure_executor.py     # Sandbox Python
-├── tool_maker.py          # Tool engine
-├── Dockerfile             # Container
-├── docker-compose.yml      # Orchestration
-├── requirements.txt        # Dépendances Python
+├── tool_maker.py          # Tool engine dynamique
+├── file_processor.py      # Traitement avancé des fichiers
+├── tools/                 # Outils dynamiques (skills)
+├── skills/                # Compétences étendues
+├── tests/                 # Tests unitaires & intégration
+├── Dockerfile             # Container (Déploiement)
+├── docker-compose.yml     # Orchestration
+├── requirements.txt       # Dépendances Python
+├── start.sh               # Script de démarrage rapide
 └── deploy.sh              # Script de déploiement
 ```
 
-## Installation Rapide
+## Installation
 
-### Option 1: Script de déploiement
+### Prérequis
+
+- Python 3.11+
+- pip
+- (Optionnel) Docker & Docker Compose
+
+### Option 1 : Installation locale
 
 ```bash
 # Cloner le projet
 git clone git@forge.apps.education.fr:durieuxvincent/albert-agentic.git
 cd albert-agentic
 
-# Lancer
+# Créer la configuration
+cp .env.example .env
+```
+
+> ⚠️ **IMPORTANT** : Éditez le fichier `.env` avec vos propres clés AVANT de démarrer :
+> ```bash
+> # Générer un token d'accès sécurisé
+> python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+> 
+> # Éditer le .env
+> nano .env
+> ```
+
+```bash
+# Lancer le serveur
 ./start.sh
 ```
 
-### Option 2: Docker (Recommandé pour production)
+### Option 2 : Docker (Recommandé pour production)
 
 ```bash
-# Configuration
 cp .env.example .env
-# Éditez .env avec votre ALBERT_API_KEY
-
-# Déploiement
+# Éditez .env avec votre ALBERT_API_KEY et BOT_ACCESS_TOKEN
 ./deploy.sh start
 ```
 
@@ -58,67 +79,59 @@ cp .env.example .env
 
 ### Variables d'environnement (.env)
 
+> ⚠️ Le fichier `.env` ne doit **JAMAIS** être commité dans le dépôt Git. Il est déjà dans le `.gitignore`.
+
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ALBERT_API_KEY` | Clé API Albert | **Obligatoire** |
-| `BOT_ACCESS_TOKEN` | Token d'accès | `change-me-in-production` |
+| `ALBERT_API_KEY` | Clé API Albert (etalab.gouv.fr) | **Obligatoire** |
+| `BOT_ACCESS_TOKEN` | Token d'accès à l'API | **À générer** |
 | `PORT` | Port du serveur | `8090` |
 | `PYTHON_EXEC_TIMEOUT` | Timeout exécution Python (s) | `30` |
 | `PYTHON_MEMORY_LIMIT` | Limite mémoire Python (Mo) | `256` |
 | `RATE_LIMIT_REQUESTS` | Requêtes/minute/IP | `30` |
 | `MAX_CHAT_HISTORY` | Messages conservés | `100` |
+| `ALLOWED_ORIGINS` | Origines CORS autorisées | `*` |
 
-### Générer un token sécurisé
+## Sécurité
 
-```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-```
+### 🔐 Gestion des Clés
+
+1. **Ne JAMAIS** commiter le fichier `.env`
+2. **Toujours** utiliser des tokens générés aléatoirement :
+   ```bash
+   python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+   ```
+3. En cas de fuite d'une clé API, la révoquer **immédiatement** sur [Albert API](https://albert.api.etalab.gouv.fr)
+
+### Mesures de sécurité implémentées
+
+| Mesure | Description |
+|--------|-------------|
+| Sandbox Python | Limites mémoire/CPU, pas d'accès réseau |
+| Rate Limiting | Token Bucket par IP (30 req/min) |
+| Validation | Pydantic schemas + validateurs spécialisés |
+| Path Traversal | Whitelist du workspace uniquement |
+| CORS | Configurable via `ALLOWED_ORIGINS` |
+| Authentification | Bearer token obligatoire |
 
 ## API Endpoints
 
 ### REST API
 
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| `GET` | `/api/status` | Statut du serveur |
-| `GET` | `/api/models` | Liste des modèles |
-| `GET` | `/api/tools` | Liste des outils |
-| `POST` | `/api/chat` | Chat principal |
-| `POST` | `/api/chat/stream` | Chat avec streaming SSE |
-| `POST` | `/api/history/clear` | Effacer l'historique |
-| `GET` | `/api/files` | Liste des fichiers |
-
-### WebSocket
-
-| Endpoint | Description |
-|----------|-------------|
-| `/ws/chat` | Communication temps réel |
+| Méthode | Endpoint | Auth | Description |
+|---------|----------|------|-------------|
+| `GET` | `/api/status` | ❌ | Statut du serveur |
+| `GET` | `/api/models` | ✅ | Liste des modèles |
+| `GET` | `/api/tools` | ✅ | Liste des outils |
+| `POST` | `/api/chat` | ✅ | Chat principal (agentique) |
+| `POST` | `/api/upload` | ✅ | Upload fichiers (images, PDF, DOCX) |
+| `POST` | `/api/history/clear` | ✅ | Effacer l'historique |
+| `GET` | `/api/files` | ✅ | Liste des fichiers workspace |
 
 ### Documentation API
 
-- Swagger UI: `http://localhost:8090/docs` (si DEBUG=true)
-- ReDoc: `http://localhost:8090/redoc` (si DEBUG=true)
-
-## Sécurité
-
-### Mesures implémentées
-
-1. **Sandbox Python** : Limites mémoire/CPU, pas d'accès réseau
-2. **Rate Limiting** : Token Bucket par IP (30 req/min)
-3. **Validation** : Pydantic schemas + validateurs spécialisés
-4. **Path Traversal** : Whitelist du workspace uniquement
-5. **Secrets** : Variables d'environnement, jamais en dur
-6. **CORS** : Configurable pour la production
-
-### Bonnes pratiques
-
-```bash
-# Jamais commiter le .env
-echo ".env" >> .gitignore
-
-# Utiliser des tokens sécurisés
-python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-```
+- Swagger UI: `http://localhost:8090/docs` (si `DEBUG=true`)
+- ReDoc: `http://localhost:8090/redoc` (si `DEBUG=true`)
 
 ## Développement
 
@@ -127,46 +140,29 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ```bash
 # Mode debug avec hot-reload
 DEBUG=true python3 -m uvicorn albert_api:app --reload --host 0.0.0.0 --port 8090
-
-# Avec logs détaillés
-DEBUG=true LOG_LEVEL=debug python3 albert_api.py
 ```
 
-### Tests
+### Lancer les tests
 
 ```bash
-# Test de l'API
-curl -X GET http://localhost:8090/api/status \
-  -H "Authorization: Bearer votre_token"
+# Installer les dépendances de test
+pip install -r requirements-dev.txt
 
-# Test du chat
-curl -X POST http://localhost:8090/api/chat \
-  -H "Authorization: Bearer votre_token" \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Bonjour!", "model": "mistralai/Ministral-3-8B-Instruct-2512"}'
+# Lancer tous les tests
+python3 -m pytest tests/ -v
 ```
 
-## Outils Disponibles
+### Outils Disponibles
 
 | Outil | Description |
 |-------|-------------|
-| `execute_command` | Exécute des commandes shell (sécurisées) |
-| `execute_python` | Exécute du code Python sandboxé |
-| `compile_latex` | Compile LaTeX → PDF |
-| `write_file` | Écrit dans le workspace |
-| `read_file` | Lit depuis le workspace |
-| `list_files` | Liste les fichiers |
-| `create_skill` | Crée un nouvel outil |
+| `execute_command` | Commandes shell sécurisées |
+| `execute_python` | Code Python sandboxé |
+| `compile_latex` | LaTeX → PDF |
+| `write_file` / `read_file` | Lecture/écriture workspace |
+| `list_files` | Liste des fichiers |
+| `create_skill` | Crée un nouvel outil dynamique |
 | `fetch_url` | Récupère le contenu d'une URL |
-
-## Gestion des erreurs
-
-| Code | Signification |
-|------|---------------|
-| `200` | Succès |
-| `401` | Token invalide |
-| `429` | Rate limit atteint |
-| `500` | Erreur serveur |
 
 ## Support
 

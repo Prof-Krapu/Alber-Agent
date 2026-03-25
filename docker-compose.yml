@@ -39,22 +39,10 @@ services:
           cpus: '0.5'
           memory: 512M
 
-  # Optionnel: Redis pour la persistance de session
-  redis:
-    image: redis:7-alpine
-    container_name: albert-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
-
 volumes:
   albert_workspace:
   albert_output:
   albert_tools:
-  redis_data:
 
 networks:
   default:

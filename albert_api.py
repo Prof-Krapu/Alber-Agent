@@ -119,6 +119,23 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
+    # Nettoyage périodique du rate limiter (éviter memory leak)
+    async def cleanup_rate_limiter_task():
+        from asyncio import sleep
+
+        while True:
+            try:
+                limiter = get_rate_limiter()
+                limiter.cleanup_inactive(max_age_seconds=3600)
+                await sleep(300)  # Toutes les 5 minutes
+            except Exception:
+                await sleep(300)
+
+    try:
+        asyncio.create_task(cleanup_rate_limiter_task())
+    except Exception:
+        pass
+
     yield
 
     # Shutdown
@@ -140,7 +157,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=config.get_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -305,9 +322,11 @@ def init_tool_manager():
     """Initialise le gestionnaire d'outils."""
     global tool_manager
     tool_manager = ToolMakerEngine(skills_dir=str(config.get_tools_path()))
-    # IMPORTANT: discover_skills d'abord (scan disque) puis legacy tools
-    tool_manager.discover_skills()
+    # IMPORTANT: legacy tools d'abord, puis discover_skills
+    # Cela garantit que les outils sécurisés (legacy) ne sont pas écrasés
+    # par des versions non-sécurisées sur disque
     register_legacy_tools(tool_manager)
+    tool_manager.discover_skills()
     print(f"DEBUG: Outils chargés: {list(tool_manager.tools.keys())}")
 
 
@@ -826,23 +845,16 @@ async def chat(request: Request, body: ChatRequestIn):
         while iterations < max_iterations:
             iterations += 1
 
-            if is_mistral:
-                payload = {
-                    "model": body.model,
-                    "messages": filtered_messages,
-                    "max_tokens": model_config["max_tokens"],
-                    "temperature": 0.7,
-                }
-            else:
-                payload = {
-                    "model": body.model,
-                    "messages": filtered_messages,
-                    "max_tokens": model_config["max_tokens"],
-                    "temperature": 0.7,
-                    "tools": tool_manager.get_albert_tools_schema()
-                    if tool_manager
-                    else [],
-                }
+            # Payload unifié : tous les modèles reçoivent les outils
+            payload = {
+                "model": body.model,
+                "messages": filtered_messages,
+                "max_tokens": model_config["max_tokens"],
+                "temperature": 0.7,
+                "tools": tool_manager.get_albert_tools_schema()
+                if tool_manager
+                else [],
+            }
 
             try:
                 response = await client.post(
@@ -862,32 +874,38 @@ async def chat(request: Request, body: ChatRequestIn):
             message_obj = data["choices"][0]["message"]
             reply = message_obj.get("content") or ""
 
-            if reply:
-                filtered_messages.append({"role": "assistant", "content": reply})
-                chat_history.add("assistant", reply, session_id)
-
-            # Détection des outils
-            matches = []
+            # Détection des outils (natifs ou regex fallback)
+            native_tool_calls = []
+            regex_matches = []
+            used_native = False
 
             if "tool_calls" in message_obj and message_obj["tool_calls"]:
+                used_native = True
+                # Ajouter le message assistant complet (avec tool_calls)
                 filtered_messages.append(message_obj)
+                if reply:
+                    chat_history.add("assistant", reply, session_id)
                 for tc in message_obj["tool_calls"]:
                     if tc.get("type") == "function":
-                        matches.append(
-                            (tc["function"]["name"], tc["function"]["arguments"])
+                        native_tool_calls.append(
+                            (tc["id"], tc["function"]["name"], tc["function"]["arguments"])
                         )
             else:
-                # Regex fallback
+                # Pas de tool_calls natifs : ajouter la réponse texte
+                if reply:
+                    filtered_messages.append({"role": "assistant", "content": reply})
+                    chat_history.add("assistant", reply, session_id)
+                # Regex fallback pour les modèles qui ne supportent pas tool_calls
                 tool_pattern = r"\[TOOL_CALLS\]([a-zA-Z0-9_]+)(\{.*?\})"
                 for m in re.finditer(tool_pattern, reply, re.DOTALL):
-                    matches.append((m.group(1), m.group(2)))
+                    regex_matches.append((m.group(1), m.group(2)))
 
-            if not matches:
+            if not native_tool_calls and not regex_matches:
                 final_reply = reply
                 break
 
-            # Exécution des outils
-            for tool_name, json_args in matches:
+            # Exécution des outils (natifs)
+            for tc_id, tool_name, json_args in native_tool_calls:
                 if not tool_manager or tool_name not in tool_manager.tools:
                     obs = f"Outil '{tool_name}' introuvable"
                 else:
@@ -899,7 +917,29 @@ async def chat(request: Request, body: ChatRequestIn):
                         )
                     except:
                         kwargs = {}
+                    obs = tool_manager.execute_tool(tool_name, kwargs)
 
+                # Rôle "tool" avec tool_call_id (format OpenAI/Mistral)
+                filtered_messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc_id,
+                    "name": tool_name,
+                    "content": str(obs),
+                })
+
+            # Exécution des outils (regex fallback — rôle user)
+            for tool_name, json_args in regex_matches:
+                if not tool_manager or tool_name not in tool_manager.tools:
+                    obs = f"Outil '{tool_name}' introuvable"
+                else:
+                    try:
+                        kwargs = (
+                            json.loads(json_args)
+                            if isinstance(json_args, str)
+                            else json_args
+                        )
+                    except:
+                        kwargs = {}
                     obs = tool_manager.execute_tool(tool_name, kwargs)
 
                 tool_msg = f"OBSERVATION DE L'OUTIL '{tool_name}':\n{obs}"

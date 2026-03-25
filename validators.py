@@ -96,15 +96,17 @@ class FilePathValidator:
 
     def __init__(self, allowed_root: str):
         import os
+        from pathlib import Path
 
         self.allowed_root = os.path.abspath(allowed_root)
 
-    def validate(self, file_path: str) -> Optional[str]:
+    def validate(self, file_path: str) -> Optional["Path"]:
         """
         Valide qu'un chemin est dans le workspace autorisé.
-        Returns: Le chemin absolu si valide, None sinon.
+        Returns: Le chemin absolu (Path) si valide, None sinon.
         """
         import os
+        from pathlib import Path
 
         if not file_path:
             return None
@@ -123,7 +125,7 @@ class FilePathValidator:
             if not abs_path.startswith(self.allowed_root):
                 return None
 
-            return abs_path
+            return Path(abs_path)
         except (ValueError, OSError):
             return None
 
@@ -158,16 +160,13 @@ class LatexValidator:
     Validateur de code LaTeX pour prévenir les injections.
     """
 
-    # Patterns dangereux à détecter
-    DANGEROUS_PATTERNS = [
-        r"\input\{",  # Inclusion de fichiers
-        r"\include\{",  # Inclusion avec page break
-        r"\ verbatim",  # Environment verbatim (peut être utilisé pour injecter)
-        r"\ write",  # Écriture dans fichiers
-        r"\immediate",  # Commandes immédiates
-        r"\special\{",  # Commandes specials (danger)
-        r"\走私",  # Injections UTF-8 suspectes
-        r"\ documentclass.*\{.*\}",  # Multiple documentclass (suspicious)
+    # Patterns dangereux à détecter (chaînes littérales, pas des regex)
+    DANGEROUS_STRINGS = [
+        r"\input{",       # Inclusion de fichiers
+        r"\include{",     # Inclusion avec page break
+        r"\write",        # Écriture dans fichiers
+        r"\immediate",    # Commandes immédiates
+        r"\special{",     # Commandes specials (danger)
     ]
 
     @classmethod
@@ -179,9 +178,9 @@ class LatexValidator:
         if not latex or len(latex) > 500000:  # 500KB max
             return False, "Code LaTeX trop long ou vide"
 
-        # Vérifier les patterns dangereux
-        for pattern in cls.DANGEROUS_PATTERNS:
-            if re.search(pattern, latex, re.IGNORECASE):
+        # Vérifier les patterns dangereux (recherche littérale)
+        for pattern in cls.DANGEROUS_STRINGS:
+            if pattern in latex:
                 return False, f"Pattern potentiellement dangereux détecté: {pattern}"
 
         # Vérifier l'équilibre des accolades

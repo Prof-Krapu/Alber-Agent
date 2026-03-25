@@ -37,6 +37,9 @@ class Config:
     RATE_LIMIT_REQUESTS: int = 30
     MAX_CHAT_HISTORY: int = 100
 
+    # CORS
+    ALLOWED_ORIGINS: str = "*"
+
     # API Albert
     ALBERT_BASE_URL: str = "https://albert.api.etalab.gouv.fr/v1"
 
@@ -57,8 +60,18 @@ class Config:
         return Path(self.OUTPUT_DIR).resolve()
 
     def get_tools_path(self) -> Path:
-        """Retourne le chemin absolu du dossier tools."""
+        """Retourne le chemin absolu du dossier tools (skills dynamiques)."""
         return Path(self.TOOLS_DIR).resolve()
+
+    def get_skills_path(self) -> Path:
+        """Retourne le chemin absolu du dossier skills."""
+        return Path(self.SKILLS_DIR).resolve()
+
+    def get_allowed_origins(self) -> list:
+        """Retourne la liste des origines CORS autorisées."""
+        if self.ALLOWED_ORIGINS == "*":
+            return ["*"]
+        return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
 
 
 def get_config() -> Config:
@@ -78,6 +91,7 @@ def get_config() -> Config:
         PYTHON_MEMORY_LIMIT=int(os.environ.get("PYTHON_MEMORY_LIMIT", "256")),
         RATE_LIMIT_REQUESTS=int(os.environ.get("RATE_LIMIT_REQUESTS", "30")),
         MAX_CHAT_HISTORY=int(os.environ.get("MAX_CHAT_HISTORY", "100")),
+        ALLOWED_ORIGINS=os.environ.get("ALLOWED_ORIGINS", "*"),
         ALBERT_BASE_URL=os.environ.get(
             "ALBERT_BASE_URL", "https://albert.api.etalab.gouv.fr/v1"
         ),
