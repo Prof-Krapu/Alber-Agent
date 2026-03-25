@@ -36,18 +36,65 @@ albert-agentic/
 
 ## Installation
 
-### Prérequis
+### Prérequis système
 
 - Python 3.11+
-- pip
-- (Optionnel) Docker & Docker Compose
+- pip et venv
+- LaTeX (texlive) pour la compilation PDF
+- Docker (optionnel) pour le déploiement containerisé
 
-### Option 1 : Installation locale
+### Installation des dépendances système
+
+#### Debian / Ubuntu
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-pip python3-venv
+sudo apt install -y texlive-latex-base texlive-latex-extra texlive-science texlive-pictures
+```
+
+**Pour Docker (optionnel)** :
+```bash
+sudo apt install -y docker.io docker-compose
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+#### Fedora / RHEL / CentOS
+
+```bash
+sudo dnf install -y python3 python3-pip python3-devel
+sudo dnf install -y texlive-scheme-full texlive-collection-science texlive-collection-pictures
+```
+
+**Pour Docker (optionnel)** :
+```bash
+sudo dnf install -y docker docker-compose
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+#### Arch Linux
+
+```bash
+sudo pacman -S python python-pip python-virtualenv texlive-most
+```
+
+**Pour Docker (optionnel)** :
+```bash
+sudo pacman -S docker docker-compose
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+### Installation de l'application
+
+#### Option 1 : Installation locale
 
 ```bash
 # Cloner le projet
-git clone git@forge.apps.education.fr:durieuxvincent/albert-agentic.git
-cd albert-agentic
+git clone https://github.com/Prof-Krapu/Alber-Agent.git
+cd Alber-Agent
 
 # Créer la configuration
 cp .env.example .env
@@ -67,9 +114,11 @@ cp .env.example .env
 ./start.sh
 ```
 
-### Option 2 : Docker (Recommandé pour production)
+#### Option 2 : Docker (Recommandé pour production)
 
 ```bash
+git clone https://github.com/Prof-Krapu/Alber-Agent.git
+cd Alber-Agent
 cp .env.example .env
 # Éditez .env avec votre ALBERT_API_KEY et BOT_ACCESS_TOKEN
 ./deploy.sh start
@@ -166,7 +215,8 @@ python3 -m pytest tests/ -v
 
 ## Support
 
-- **Issues**: [GitLab Forge](https://forge.apps.education.fr/durieuxvincent/albert-agentic/-/issues)
+- **GitHub Repository**: https://github.com/Prof-Krapu/Alber-Agent
+- **Issues**: https://github.com/Prof-Krapu/Alber-Agent/issues
 - **Documentation API**: `/docs` une fois le serveur démarré
 
 ---
