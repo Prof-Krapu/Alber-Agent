@@ -17,19 +17,14 @@ class ToolMakerEngine:
     """
     def __init__(self, skills_dir=None):
         self.tools: Dict[str, Callable] = {}
-        # Liste des outils internes (hardcoded) qui ne doivent pas être supprimés lors du scan
-        self.internal_tools: set = set()
         # Utiliser le répertoire spécifié ou le défaut
         self.skills_dir = Path(skills_dir).resolve() if skills_dir else DEFAULT_SKILLS_DIR
         self.skills_dir.mkdir(parents=True, exist_ok=True)
         # L'outil d'amorçage est injecté par défaut
-        self.register_tool(self.create_skill, internal=True)
+        self.register_tool(self.create_skill)
 
-    def register_tool(self, func: Callable, internal=False):
-        name = func.__name__
-        self.tools[name] = func
-        if internal:
-            self.internal_tools.add(name)
+    def register_tool(self, func: Callable, internal: bool = False):
+        self.tools[func.__name__] = func
 
     def create_skill(self, nom_outil: str, code_python: str) -> str:
         """
@@ -68,18 +63,14 @@ class ToolMakerEngine:
     def discover_skills(self) -> str:
         """
         Scanne le dossier des skills et charge/recharge dynamiquement les modules Python.
-        Supprime les outils qui ne sont plus présents sur le disque (sauf outils internes).
         """
         loaded_tools = []
         errors = []
         
-        # On ne garde que les outils internes avant de rescanner
-        temp_tools = {name: self.tools[name] for name in self.internal_tools if name in self.tools}
-        self.tools = temp_tools
-        
         print(f"DEBUG: Scanning directory: {self.skills_dir}")
         for py_file in self.skills_dir.glob("*.py"):
             module_name = py_file.stem
+            print(f"DEBUG: Found file: {py_file}")
             try:
                 # Importation dynamique via importlib
                 spec = importlib.util.spec_from_file_location(module_name, py_file)
@@ -91,19 +82,21 @@ class ToolMakerEngine:
                 
                 # Isolation des fonctions: on scrute uniquement les fonctions déclarées dans ce module
                 for name, obj in inspect.getmembers(module, inspect.isfunction):
-                    # Ignorer les fonctions privées
+                    # Relax the check for __module__ as dynamically imported ones can have varying scopes
+                    # Ignorer les fonctions privées ou importées d'autres bibliothèques (via un simple check de chemin de base)
                     if not name.startswith("_"):
                         try:
-                            # On vérifie que la fonction appartient bien au module chargé (et pas un import)
-                            if obj.__module__ == module_name:
+                            file_path_of_func = inspect.getfile(obj)
+                            print(f"DEBUG: Function '{name}' in '{file_path_of_func}'")
+                            if str(self.skills_dir) in file_path_of_func:
                                 self.register_tool(obj)
                                 loaded_tools.append(name)
-                        except Exception:
+                        except TypeError:
                             pass
             except Exception as e:
                 errors.append(f"Erreur de chargement pour '{module_name}': {e}")
                 
-        msg = f"Rechargement terminé. Outils actifs: {', '.join(list(self.tools.keys()))}"
+        msg = f"Rechargement terminé. Outils actifs: {', '.join(loaded_tools) if loaded_tools else 'Aucun'}"
         if errors:
             msg += "\n" + "\n".join(errors)
         return msg

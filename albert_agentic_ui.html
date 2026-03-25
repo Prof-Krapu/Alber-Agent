@@ -501,8 +501,18 @@
             background: rgba(99, 102, 241, 0.1);
         }
 
+        .attachment-upload.loading span {
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
         .attachment-upload span {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
         }
 
         .attachment-upload small {
@@ -782,7 +792,7 @@
                         <span>📎</span>
                         <small>Fichier</small>
                     </div>
-                    <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.docx,.doc,.xlsx,.xls,.txt,.md,.csv" style="display:none" onchange="handleFiles(this.files)">
+                    <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.docx,.doc,.xlsx,.xls,.txt,.md,.csv" style="display:none">
                 </div>
                 
                 <!-- Upload progress bar -->
@@ -825,8 +835,8 @@
             </div>
             <div class="modal-content">
                 <div style="margin-bottom: 16px;">
-                    <label style="display: block; margin-bottom: 8px; font-size: 0.875rem;">Token d'accès API</label>
-                    <input type="password" id="apiToken" style="width: 100%; padding: 10px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; color: white;" placeholder="Entrez votre token">
+                    <label style="display: block; margin-bottom: 8px; font-size: 0.875rem;">Token d'accès API (Bot Token ou Albert API Key)</label>
+                    <input type="password" id="apiToken" style="width: 100%; padding: 10px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; color: white;" placeholder="sk-eyJ... ou votre token personnalisé">
                 </div>
                 <button class="btn btn-primary" onclick="saveSettings()">Enregistrer</button>
             </div>
@@ -954,7 +964,8 @@
             
             isUploading = true;
             const uploadBtn = document.getElementById('uploadBtn');
-            uploadBtn.style.opacity = '0.5';
+            uploadBtn.classList.add('loading');
+            uploadBtn.querySelector('small').textContent = 'Upload...';
             
             let uploaded = 0;
             const total = files.length;
@@ -979,48 +990,59 @@
             hideProgress();
             renderAttachments();
             isUploading = false;
-            uploadBtn.style.opacity = '1';
+            uploadBtn.classList.remove('loading');
+            uploadBtn.querySelector('small').textContent = 'Fichier';
         }
 
-        async function uploadFile(file) {
-            try {
+        function uploadFile(file) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
                 const formData = new FormData();
                 formData.append('files', file);
-                
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${BOT_TOKEN}` },
-                    body: formData
-                });
-                
-                if (!response.ok) {
-                    alert(`Erreur upload: HTTP ${response.status}`);
-                    return;
-                }
-                
-                const data = await response.json();
-                
-                if (data.success && data.files.length > 0) {
-                    const fileInfo = data.files[0];
-                    let preview = null;
-                    
-                    if (file.type.startsWith('image/')) {
-                        preview = URL.createObjectURL(file);
+
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percent = (e.loaded / e.total) * 100;
+                        showProgress(percent);
                     }
-                    
-                    uploadedFiles.push({
-                        id: fileInfo.id,
-                        name: file.name,
-                        type: fileInfo.type,
-                        preview: preview,
-                        size: file.size
-                    });
-                } else {
-                    alert(`Erreur upload: ${data.error}`);
-                }
-            } catch (error) {
-                alert('Erreur lors du téléchargement du fichier');
-            }
+                });
+
+                xhr.onload = async () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        const data = JSON.parse(xhr.responseText);
+                        if (data.success && data.files.length > 0) {
+                            const fileInfo = data.files[0];
+                            let preview = null;
+                            if (file.type.startsWith('image/')) {
+                                preview = URL.createObjectURL(file);
+                            }
+                            uploadedFiles.push({
+                                id: fileInfo.id,
+                                name: file.name,
+                                type: fileInfo.type,
+                                preview: preview,
+                                size: file.size
+                            });
+                            resolve();
+                        } else {
+                            alert(`Erreur upload: ${data.error}`);
+                            reject();
+                        }
+                    } else {
+                        alert(`Erreur upload: HTTP ${xhr.status}`);
+                        reject();
+                    }
+                };
+
+                xhr.onerror = () => {
+                    alert('Erreur lors du téléchargement du fichier');
+                    reject();
+                };
+
+                xhr.open('POST', '/api/upload');
+                xhr.setRequestHeader('Authorization', `Bearer ${BOT_TOKEN}`);
+                xhr.send(formData);
+            });
         }
 
         function removeAttachment(id) {
@@ -1409,12 +1431,10 @@
                 localStorage.setItem('albert_token', token);
                 BOT_TOKEN = token;
                 hideSettings();
-                // Recharger les données avec le nouveau token
+                // Recharger les données avec le nouveau token (les event listeners sont gérés une seule fois dans init)
                 loadModels();
                 loadTools();
                 checkStatus();
-                setupDragDrop();
-                setupFileUpload();
                 addMessage('✅ Token enregistré. Connexion en cours...', 'system');
             }
         }

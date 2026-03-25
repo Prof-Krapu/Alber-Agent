@@ -267,14 +267,29 @@ attachments_lock = asyncio.Lock()
 
 
 async def verify_token(request: Request) -> bool:
-    """Vérifie le token d'accès."""
-    token = request.headers.get("Authorization", "").replace("Bearer ", "")
-    api_key = request.headers.get("X-API-Key", "")
+    """Vérifie le token d'accès ou la clé API."""
+    auth_header = request.headers.get("Authorization", "")
+    token = ""
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header[7:].strip()
+    
+    api_key_header = request.headers.get("X-API-Key", "").strip()
 
-    provided = token or api_key
-    if not provided or provided != config.BOT_ACCESS_TOKEN:
+    provided = token or api_key_header
+    
+    # Accepter soit le token d'accès bot, soit la clé API Albert réelle (pour l'admin)
+    if not provided:
+         raise HTTPException(
+            status_code=401, detail="Unauthorized: Missing access token"
+        )
+        
+    valid_tokens = [config.BOT_ACCESS_TOKEN]
+    if config.ALBERT_API_KEY:
+        valid_tokens.append(config.ALBERT_API_KEY)
+        
+    if provided not in valid_tokens:
         raise HTTPException(
-            status_code=401, detail="Unauthorized: Invalid or missing access token"
+            status_code=401, detail="Unauthorized: Invalid access token"
         )
 
     return True
@@ -567,7 +582,8 @@ SYSTEM_PROMPT = r"""Tu es Albert IA Agentic, un assistant conversationnel expert
    - **Électricité** : Utilise TOUJOURS `circuitikz` en style EUROPEAN (résistances rectangulaires).
    - **Chimie** : Utilise `\ce{...}` (mhchem) et `\chemfig{...}`.
    - **Graphiques** : Utilise `pgfplots` (axis).
-5. **AUTO-CORRECTION** : Si la compilation échoue, lis les logs renvoyés et corrige-toi.
+5. **MÉMOIRE À LONG TERME** : Utilise IMPÉRATIVEMENT l'outil `manage_memory` (action 'append') pour te souvenir d'informations persistantes (nom de l'utilisateur, préférences, contexte global). Ne tente jamais de stocker la mémoire en écrivant un fichier `memoire.txt` dans `output/` avec `write_file`.
+6. **AUTO-CORRECTION** : Si la compilation échoue, lis les logs renvoyés et corrige-toi.
 
 # RÈGLE DE FORMATAGE LATEX CRITIQUE
 1. **Délimiteurs** : TOUT symbole mathématique doit être encadré par des dollars `$`.
@@ -620,8 +636,10 @@ async def upload_files(request: Request, files: List[UploadFile] = File(...)):
             # Déterminer le MIME type
             mime_type = file.content_type or get_mime_type_from_ext(file.filename)
 
-            # Traiter le fichier
-            attachment = process_file(content, file.filename, mime_type)
+            # Traiter le fichier dans un thread séparé (CPU-bound)
+            attachment = await asyncio.to_thread(
+                process_file, content, file.filename, mime_type
+            )
 
             if attachment is None:
                 errors.append(f"{file.filename}: Type de fichier non supporté")
@@ -677,8 +695,10 @@ async def upload_base64(request: Request, body: dict):
                 content={"success": False, "error": "Fichier trop grand"},
             )
 
-        # Traiter le fichier
-        attachment = process_file(content, name, mime_type)
+        # Traiter le fichier dans un thread séparé (CPU-bound)
+        attachment = await asyncio.to_thread(
+            process_file, content, name, mime_type
+        )
 
         if attachment is None:
             return JSONResponse(
@@ -823,7 +843,10 @@ async def chat(request: Request, body: ChatRequestIn):
         role = m.get("role")
         content = m.get("content")
         if role in ["system", "user", "assistant"] and content:
-            filtered_messages.append({"role": role, "content": str(content).strip()})
+            if isinstance(content, list):
+                filtered_messages.append({"role": role, "content": content})
+            else:
+                filtered_messages.append({"role": role, "content": str(content).strip()})
 
     # Ajouter le system prompt si vide
     if not any(m.get("role") == "system" for m in filtered_messages):

@@ -1,0 +1,69 @@
+nohup: les entrées sont ignorées
+INFO:     Started server process [713413]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8090 (Press CTRL+C to quit)
+==================================================
+🤖 ALBERT IA AGENTIC - FastAPI Backend
+==================================================
+Port: 8090
+Workspace: /home/profkrapu/Documents/ALBERT AGENT/workspace
+Modèles: 4
+API Key: ✅ Configurée
+Token: ✅ Configuré
+==================================================
+DEBUG: Scanning directory: /home/profkrapu/Documents/ALBERT AGENT/tools
+DEBUG: Found file: /home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py
+DEBUG: Function 'manage_memory' in '/home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py'
+DEBUG: Outils chargés: ['create_skill', 'execute_command', 'execute_python', 'list_files', 'read_file', 'write_file', 'compile_latex', 'effacer_fichiers', 'fetch_url', 'manage_memory']
+INFO:     100.102.46.75:60751 - "GET / HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60751 - "GET /api/models HTTP/1.1" 200 OK
+DEBUG: Scanning directory: /home/profkrapu/Documents/ALBERT AGENT/tools
+DEBUG: Found file: /home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py
+DEBUG: Function 'manage_memory' in '/home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py'
+INFO:     100.102.46.75:60751 - "GET /api/tools HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60751 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60751 - "GET / HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60751 - "GET /api/models HTTP/1.1" 200 OK
+DEBUG: Scanning directory: /home/profkrapu/Documents/ALBERT AGENT/tools
+DEBUG: Found file: /home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py
+DEBUG: Function 'manage_memory' in '/home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py'
+INFO:     100.102.46.75:60751 - "GET /api/tools HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60751 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60752 - "GET /favicon.ico HTTP/1.1" 429 Too Many Requests
+INFO:     100.102.46.75:60856 - "POST /api/chat HTTP/1.1" 200 OK
+DEBUG: Scanning directory: /home/profkrapu/Documents/ALBERT AGENT/tools
+DEBUG: Found file: /home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py
+DEBUG: Function 'manage_memory' in '/home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py'
+INFO:     100.102.46.75:60856 - "GET /api/tools HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60768 - "POST /api/upload HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60769 - "POST /api/upload HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60862 - "POST /api/chat HTTP/1.1" 200 OK
+DEBUG: Scanning directory: /home/profkrapu/Documents/ALBERT AGENT/tools
+DEBUG: Found file: /home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py
+DEBUG: Function 'manage_memory' in '/home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py'
+INFO:     100.102.46.75:60862 - "GET /api/tools HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60877 - "POST /api/upload HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60876 - "POST /api/upload HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60878 - "POST /api/chat HTTP/1.1" 200 OK
+DEBUG: Scanning directory: /home/profkrapu/Documents/ALBERT AGENT/tools
+DEBUG: Found file: /home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py
+DEBUG: Function 'manage_memory' in '/home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py'
+INFO:     100.102.46.75:60878 - "GET /api/tools HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60879 - "POST /api/upload HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60880 - "POST /api/upload HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60890 - "POST /api/chat HTTP/1.1" 200 OK
+DEBUG: Scanning directory: /home/profkrapu/Documents/ALBERT AGENT/tools
+DEBUG: Found file: /home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py
+DEBUG: Function 'manage_memory' in '/home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py'
+INFO:     100.102.46.75:60890 - "GET /api/tools HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60942 - "GET / HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60942 - "GET /api/models HTTP/1.1" 200 OK
+DEBUG: Scanning directory: /home/profkrapu/Documents/ALBERT AGENT/tools
+DEBUG: Found file: /home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py
+DEBUG: Function 'manage_memory' in '/home/profkrapu/Documents/ALBERT AGENT/tools/manage_memory.py'
+INFO:     100.102.46.75:60942 - "GET /api/tools HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60943 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     100.102.46.75:60942 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60959 - "POST /api/upload HTTP/1.1" 200 OK
+INFO:     100.102.46.75:60958 - "POST /api/upload HTTP/1.1" 200 OK
